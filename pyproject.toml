@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "major"
+version = "0.1.0"
+description = ""
+authors = ["AyushAryal <ayusharyal100@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.13"
+numba = "^0.57.0"
+scipy = "^1.11.1"
+librosa = "^0.10.0.post2"
+ipykernel = "^6.23.3"
+matplotlib = "^3.7.1"
+musicalbeeps = "^0.2.9"
+gensound = "^0.5.3"
+
+
+[tool.poetry.group.dev.dependencies]
+flake8 = "^6.0.0"
+black = "^23.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
