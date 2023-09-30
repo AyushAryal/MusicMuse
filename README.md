@@ -39,3 +39,74 @@ $$  M(f) = 69 + 12 \cdot \log_2{\frac{x}{440}} $$
 
 
 Then we can map the MIDI number to notation from the definition of MIDI.
+
+## Pitch Detection using Autocorrelation
+
+There are several methods that can be used for pitch detection.
+AMDF, ASMDF, YIN algorithm, MPM algorithm, Harmonic product spectrum, Cepstral analysis, and Autocorrelation are some popular approaches. More recently, machine learning has also been employed for this.
+
+For our project we chose to use autocorrelation since it strikes a perfect balance between complexity and accuracy. Let us look at how autocorrelation works.
+
+### Periodic nature of music
+
+After we zoom into the signal, we can see that the signal is periodic.
+All musical signals have some perceiveable periodicity to them.
+This feature can be exploited to determine the frequency of the signal.
+
+It is to be noted that a signal can have multiple periodicities. And often, this is the case.
+When you look at a single note produced by an insturment, we can observe that it is not a pure sine wave.
+This is because multiples of fundamental frequency is also present in the signal (called overtones)
+This is the reason why the signal is not a perfect sine wave.
+
+
+### Autocorrelation
+
+Autocorrelation, sometimes known as serial correlation in the discrete time case, is the correlation of a signal with a delayed copy of itself as a function of delay. This is similar to a cross-correlation operation, which itself is similar to a convolution.
+
+
+Lets start with the convolution function:
+
+$$c(t) = \int_{-\infty}^{\infty}{f(x) g(t-x) dx}$$
+
+The formula states that a convolution is a mathematical operation on two functions (f and g) that produces a third function (f * g) that expresses how the shape of one is modified by the other.
+
+One of the functions is flipped about the y-axis and offset by a certain amount first. Then the functions are multiplied and integrated over their domains.
+
+For cross-correlation we perform a convolution without flipping the function about the y-axis. Therefore the formula becomes,
+
+$$c(t) = \int_{-\infty}^{\infty}{f(x) g(x-t) dx}$$
+
+Similarly, for autocorrelation we perform cross-correlation with the same function.
+
+Thus, the mathematical formula for autocorrelation is as follows:
+
+$$a(t) = \int_{-\infty}^{\infty}{f(x) f(x - t) dx}$$
+
+For the discrete case, this becomes,
+
+$$a(t) = \sum_{x = 0}^{N}{ f(x)f(x-t)}$$
+
+
+The figure below illustrates the three functions
+
+<center><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Comparison_convolution_correlation.svg/600px-Comparison_convolution_correlation.svg.png"></center>
+
+### Now, how can we use autocorrelation to figure out the frequency?
+
+Autocorrelation gives you correlation of a signal with its delayed version. When the correlation is high, we can deduce the signal is periodic at that offset.When the correlation is low, the signal is not periodic yet.
+
+Therefore we can figure out the time delta when the signal becomes periodic. This time delta can be used to figure out the frequency of the signal.
+
+#### Limitations
+
+A naive implementation of autocorrelation that selects the first instance of periodicity, will always prefer higher octaves. Since higher frequencies show their periodic nature faster. This is also known as "octave-error" which is a common limitation of autocorrelation. This can be circumvented partly. We can switch to the frequency domain, and look at the frequency with highest intensity. Similarly, we can simply filter improbable notes which are too high to sing/play. It is also possible to not select the first instance of periodicity, but instead select the most probable one.
+
+
+### Spectogram
+
+A spectogram is a 2D representation of a signal. It is a visual way of representing the signal strength, or “loudness”, of a signal over time at various frequencies present in a particular waveform. This is useful for audio analysis because this is a complete description of a signal which contains constituent frequencies at every time interval.
+
+
+The strength f(A) is represeted in decibels (dB) which is a standard logarithmic scale over amplitude (A). Humans also perceive strength of a audio signal logarithmically.
+
+$$ f(A) = 10 \cdot \log_{10}{A} $$
