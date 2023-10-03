@@ -14,6 +14,7 @@ ipykernel = "^6.23.3"
 matplotlib = "^3.7.1"
 musicalbeeps = "^0.2.9"
 gensound = "^0.5.3"
+gensim = "^4.3.2"
 
 
 [tool.poetry.group.dev.dependencies]
