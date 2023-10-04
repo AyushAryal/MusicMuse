@@ -1,6 +1,7 @@
 import librosa
 import glob
 
+
 class Audio:
     def __init__(self, path):
         self.path = path

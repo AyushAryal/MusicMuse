@@ -4,8 +4,8 @@ from .music import Chord, Note
 
 TOKENS = {
     "note_name": [n for n in Note.chromatic_sharps if "#" not in n],
-    "note_accidentals": ["#", 'b'],
-    "chord_type": [re.escape(t) for t in Chord.chord_types.values() if t != ""]
+    "note_accidentals": ["#", "b"],
+    "chord_type": [re.escape(t) for t in Chord.chord_types.values() if t != ""],
 }
 
 ALL_TOKENS = sum([t for t in TOKENS.values()], [])
@@ -28,13 +28,15 @@ class Token:
 def lexer(input_string):
     # Define regular expressions for each token type
     patterns = {
-        "note_name": '|'.join(TOKENS["note_name"]),
-        "note_accidentals": '|'.join(TOKENS["note_accidentals"]),
-        "chord_type": '|'.join(TOKENS["chord_type"]),
+        "note_name": "|".join(TOKENS["note_name"]),
+        "note_accidentals": "|".join(TOKENS["note_accidentals"]),
+        "chord_type": "|".join(TOKENS["chord_type"]),
     }
 
     # Combined pattern for all token types
-    combined_pattern = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in patterns.items())
+    combined_pattern = "|".join(
+        f"(?P<{name}>{pattern})" for name, pattern in patterns.items()
+    )
     tokens = []
     for match in re.finditer(combined_pattern, input_string):
         for name, _ in patterns.items():

@@ -1,8 +1,10 @@
 import csv
-from lib.chord2vec import chord_progression_parser, chord2vec, EpochLogger
+from lib.chord_progression_parser import chord_progression_parser
+from lib.chord2vec import chord2vec
 import matplotlib.pyplot as plt
 import operator
 import functools
+
 
 def main():
     chord_progressions = []
@@ -13,21 +15,26 @@ def main():
             for semitones in range(0, 12):
                 transposed = [chord.transpose(semitones) for chord in chord_progression]
                 chord_progressions.append(list(map(str, transposed)))
-    model = chord2vec(chord_progressions, vector_size=2, epochs=10, callbacks=[EpochLogger()])
+    model = chord2vec(chord_progressions, vector_size=2, epochs=10)
     model.save("res/vectors.bin")
 
-    vocab = list(functools.reduce(operator.or_, (set(progression) for progression in chord_progressions)))
+    vocab = list(
+        functools.reduce(
+            operator.or_, (set(progression) for progression in chord_progressions)
+        )
+    )
     data = [(chord, list(model.wv[chord])) for chord in vocab]
     labels, vectors = zip(*data)
     x, y = zip(*vectors)
     plt.style.use("ggplot")
     plt.figure(figsize=(6, 6))
-    plt.scatter(x, y, edgecolors='k', c='r')
+    plt.scatter(x, y, edgecolors="k", c="r")
     for i, label in enumerate(labels):
-        plt.text(x[i], y[i], label, fontsize=12, ha='center', va='bottom')
+        plt.text(x[i], y[i], label, fontsize=12, ha="center", va="bottom")
     plt.show()
 
     print(model.wv.distance("C", "G"))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

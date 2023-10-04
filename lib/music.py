@@ -9,7 +9,11 @@ class Note:
     def from_name(name: str, octave: int):
         if name not in Note.chromatic_sharps and name not in Note.chromatic_flats:
             raise RecursionError(f"Invalid note: {name} {octave}")
-        section = Note.chromatic_sharps if name in Note.chromatic_sharps else Note.chromatic_flats
+        section = (
+            Note.chromatic_sharps
+            if name in Note.chromatic_sharps
+            else Note.chromatic_flats
+        )
         return Note(section.index(name) + octave * len(Note.chromatic_sharps))
 
     def get_name(self, sharps=True):
@@ -17,10 +21,10 @@ class Note:
         name = section[self.note % len(section)]
         octave = self.note // len(section)
         return name, octave
-        
+
     def __repr__(self):
         return self.__str__()
-    
+
     def __str__(self):
         name, octave = self.get_name()
         return name + str(octave)
@@ -38,22 +42,23 @@ class Note:
     def __sub__(self, n):
         return self.note - n.note
 
+
 class Chord:
     chord_types = {
-            (1, 5, 8): '',
-            (1, 4, 8): 'm',
-            (1, 4, 7): 'dim',
-            (1, 5, 9): '+',
-            (1, 3, 8): 'sus2',
-            (1, 6, 8): 'sus4',
-            (1, 5, 8, 10): '6',
-            (1, 5, 8, 12): 'maj7',
-            (1, 4, 8, 11): 'm7',
-            (1, 5, 8, 11): '7',
-            (1, 5, 8, 15): 'add9',
-            (1, 5, 8, 11, 15): '9'
+        (1, 5, 8): "",
+        (1, 4, 8): "m",
+        (1, 4, 7): "dim",
+        (1, 5, 9): "+",
+        (1, 3, 8): "sus2",
+        (1, 6, 8): "sus4",
+        (1, 5, 8, 10): "6",
+        (1, 5, 8, 12): "maj7",
+        (1, 4, 8, 11): "m7",
+        (1, 5, 8, 11): "7",
+        (1, 5, 8, 15): "add9",
+        (1, 5, 8, 11, 15): "9",
     }
-    
+
     def __init__(self, notes):
         if len(notes) < 2:
             raise ValueError("A chord must have at least 2 notes")
