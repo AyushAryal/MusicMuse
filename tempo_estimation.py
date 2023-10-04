@@ -1,5 +1,6 @@
-import librosa
 import glob
+
+import librosa
 
 
 class Audio:

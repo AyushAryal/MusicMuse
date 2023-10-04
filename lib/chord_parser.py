@@ -1,6 +1,6 @@
 import re
-from .music import Chord, Note
 
+from .music import Chord, Note
 
 TOKENS = {
     "note_name": [n for n in Note.chromatic_sharps if "#" not in n],

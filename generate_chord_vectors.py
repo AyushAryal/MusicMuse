@@ -1,17 +1,19 @@
-import csv
-from lib.chord_progression_parser import chord_progression_parser
-from lib.chord2vec import chord2vec
-import matplotlib.pyplot as plt
-import operator
-import functools
 import argparse
+import csv
+import functools
+import operator
+from typing import List
+
+import matplotlib.pyplot as plt
+
+from lib.chord2vec import chord2vec
+from lib.chord_progression_parser import chord_progression_parser
+from lib.music import Chord
 
 
-def plot_chord_vectors(chord_progressions, model):
-    vocab = list(
-        functools.reduce(
-            operator.or_, (set(progression) for progression in chord_progressions)
-        )
+def plot_chord_vectors(chord_progressions: List[List[Chord]], model):
+    vocab = functools.reduce(
+        operator.or_, (set(progression) for progression in chord_progressions)
     )
     data = [(chord, list(model.wv[chord])) for chord in vocab]
     labels, vectors = zip(*data)

@@ -1,5 +1,6 @@
-import time
 import datetime
+import time
+
 from gensim.models import Word2Vec
 from gensim.models.callbacks import CallbackAny2Vec
 
