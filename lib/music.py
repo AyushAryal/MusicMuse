@@ -29,6 +29,12 @@ class Note:
         name, octave = self.get_name()
         return name + str(octave)
 
+    def __hash__(self):
+        return hash(self.note)
+
+    def __eq__(self, o):
+        return self.note == o.note
+
     def str_sharp(self):
         return self.__str__()
 
@@ -47,6 +53,7 @@ class Chord:
     chord_types = {
         (1, 5, 8): "",
         (1, 4, 8): "m",
+        (1, 8): "5",
         (1, 4, 7): "dim",
         (1, 5, 9): "+",
         (1, 3, 8): "sus2",
@@ -80,6 +87,12 @@ class Chord:
 
     def __repr__(self):
         return self.__str__()
+
+    def __hash__(self):
+        return sum(hash(note) for note in self.notes)
+
+    def __eq__(self, o):
+        return self.notes == o.notes
 
     def transpose(self, semitones):
         transposed_notes = [note.transpose(semitones) for note in self.notes]

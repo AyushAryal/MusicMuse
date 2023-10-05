@@ -1,5 +1,5 @@
 import argparse
-import csv
+import json
 import functools
 import operator
 from typing import List
@@ -11,7 +11,7 @@ from lib.chord_progression_parser import chord_progression_parser
 from lib.music import Chord
 
 
-def plot_chord_vectors(chord_progressions: List[List[Chord]], model):
+def plot_chord_vectors_2d(chord_progressions: List[List[Chord]], model):
     vocab = functools.reduce(
         operator.or_, (set(progression) for progression in chord_progressions)
     )
@@ -26,11 +26,28 @@ def plot_chord_vectors(chord_progressions: List[List[Chord]], model):
     plt.show()
 
 
+def plot_chord_vectors_3d(chord_progressions: List[List[Chord]], model):
+    vocab = functools.reduce(
+        operator.or_, (set(progression) for progression in chord_progressions)
+    )
+    data = [(chord, list(model.wv[chord])) for chord in vocab]
+    labels, vectors = zip(*data)
+    x, y, z = zip(*vectors)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+    ax.scatter(x, y, z, c="b", marker="o", label="Data Points")
+    for i, label in enumerate(labels):
+        ax.text(x[i], y[i], z[i], label, fontsize=12, ha="center", va="bottom")
+    plt.show()
+
+
 def generate_chord_vectors(chord_progressions, args):
     model = chord2vec(
         chord_progressions,
         vector_size=args.dimensions,
         epochs=args.epochs,
+        context_window=args.context_window,
     )
     model.save(args.output)
     return model
@@ -43,8 +60,8 @@ def main():
     parser.add_argument(
         "-i",
         "--input",
-        default="res/chord_progressions.csv",
-        help="The input csv file path",
+        default="res/chord_progressions.json",
+        help="The input json file path",
     )
     parser.add_argument(
         "-o",
@@ -67,6 +84,13 @@ def main():
         help="The number of epochs",
     )
     parser.add_argument(
+        "-c",
+        "--context-window",
+        type=int,
+        default=3,
+        help="The context window",
+    )
+    parser.add_argument(
         "--plot",
         action="store_true",
         help="Plot the vectors (if two dimensional)",
@@ -75,9 +99,9 @@ def main():
 
     chord_progressions = []
     with open(args.input, encoding="utf8") as f:
-        reader = csv.reader(f)
-        for _, _, chord_notations, *_ in reader:
-            chord_progression = chord_progression_parser(chord_notations.split("-"))
+        chord_progressions_ = json.loads(f.read())
+        for progression in chord_progressions_:
+            chord_progression = chord_progression_parser(progression)
             for semitones in range(0, 12):
                 transposed = [chord.transpose(semitones) for chord in chord_progression]
                 chord_progressions.append(list(map(str, transposed)))
@@ -85,7 +109,9 @@ def main():
     model = generate_chord_vectors(chord_progressions, args)
     if args.plot:
         if args.dimensions == 2:
-            plot_chord_vectors(chord_progressions, model)
+            plot_chord_vectors_2d(chord_progressions, model)
+        if args.dimensions == 3:
+            plot_chord_vectors_3d(chord_progressions, model)
         else:
             print(f"Cannot plot vector of size: {args.dimensions}")
 

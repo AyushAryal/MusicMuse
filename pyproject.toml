@@ -15,6 +15,8 @@ matplotlib = "^3.7.1"
 musicalbeeps = "^0.2.9"
 gensound = "^0.5.3"
 gensim = "^4.3.2"
+lxml = "^4.9.3"
+selenium = "^4.13.0"
 
 
 [tool.poetry.group.dev.dependencies]

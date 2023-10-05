@@ -6,6 +6,11 @@ TOKENS = {
     "note_name": [n for n in Note.chromatic_sharps if "#" not in n],
     "note_accidentals": ["#", "b"],
     "chord_type": [re.escape(t) for t in Chord.chord_types.values() if t != ""],
+    "separators": ["/"],
+    "unknown": [
+        r"a|c|d|e|f|g|h|i|j|k|l|n|o|p|q|r|s|t|u|v|w|x|y|z|\-|"
+        r"H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|\||\\\\"
+    ],
 }
 
 ALL_TOKENS = sum([t for t in TOKENS.values()], [])
@@ -31,6 +36,8 @@ def lexer(input_string):
         "note_name": "|".join(TOKENS["note_name"]),
         "note_accidentals": "|".join(TOKENS["note_accidentals"]),
         "chord_type": "|".join(TOKENS["chord_type"]),
+        "separators": "|".join(TOKENS["separators"]),
+        "unknown": "|".join(TOKENS["unknown"]),
     }
 
     # Combined pattern for all token types
@@ -50,22 +57,37 @@ def chord_parser(chord_notation):
     tokens = lexer(chord_notation)
     root_note = None
     chord_type = ""
+    separator_encountered = False
+    over_note = None
 
     for token in tokens:
+        if token.type == "unknown":
+            raise ValueError(f"Invalid chord notation: {chord_notation}")
         if token.type == "note_name":
             if root_note is None:
                 root_note = token.value
+            elif separator_encountered:
+                over_note = token.value
             else:
                 raise ValueError(f"Invalid chord notation: {chord_notation}")
         elif token.type == "note_accidentals":
-            if root_note is not None:
+            if separator_encountered:
+                over_note += token.value
+            elif root_note is not None:
                 root_note += token.value
             else:
                 raise ValueError(f"Invalid chord notation: {chord_notation}")
         elif token.type == "chord_type":
             chord_type += token.value
+        elif token.type == "separators":
+            if separator_encountered:
+                raise ValueError(f"Invalid chord notation: {chord_notation}")
+            separator_encountered = True
         else:
             raise ValueError("Invalid token")
+
+    if separator_encountered and not over_note:
+        raise ValueError(f"Invalid chord notation: {chord_notation}")
 
     if root_note is None:
         raise ValueError("Chord must have a root note")
