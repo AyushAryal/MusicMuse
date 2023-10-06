@@ -49,7 +49,7 @@ def generate_chord_vectors(chord_progressions, args):
         epochs=args.epochs,
         context_window=args.context_window,
     )
-    model.save(args.output)
+    model.wv.save(args.output)
     return model
 
 
@@ -99,12 +99,10 @@ def main():
 
     chord_progressions = []
     with open(args.input, encoding="utf8") as f:
-        chord_progressions_ = json.loads(f.read())
+        chord_progressions_ = json.load(f)
         for progression in chord_progressions_:
             chord_progression = chord_progression_parser(progression)
-            for semitones in range(0, 12):
-                transposed = [chord.transpose(semitones) for chord in chord_progression]
-                chord_progressions.append(list(map(str, transposed)))
+            chord_progressions.append(list(map(str, chord_progression)))
 
     model = generate_chord_vectors(chord_progressions, args)
     if args.plot:
