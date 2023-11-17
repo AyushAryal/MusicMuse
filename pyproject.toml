@@ -19,6 +19,7 @@ lxml = "^4.9.3"
 selenium = "^4.13.0"
 torch = {version = "^2.1.0+cpu", source = "pytorch"}
 torchvision = {version = "^0.16.0+cpu", source = "pytorch"}
+flask = "^3.0.0"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"
