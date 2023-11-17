@@ -79,7 +79,7 @@ def main():
     dim = chord_vectors["C"].size
 
     train_, test_ = random_split(UltimateGuitarSongDataset(chord_vectors), [0.8, 0.2])
-    batch_size = 64
+    batch_size = 256
     train = DataLoader(train_, batch_size=batch_size)
     test = DataLoader(test_, batch_size=batch_size, shuffle=True)
 
@@ -123,10 +123,14 @@ def test():
 
     with torch.no_grad():
         while True:
-            s = input("Enter chord: ").strip()
-            pred = model(torch.from_numpy(chord_vectors[s]))
-            similar = chord_vectors.similar_by_vector(pred.numpy(), topn=5)
-            print(chord_vectors[s], pred, similar)
+            try:
+                s = input("Enter chord: ").strip()
+            except KeyboardInterrupt:
+                break
+            pred = model(torch.from_numpy(np.copy(chord_vectors[s])))
+            similar = chord_vectors.similar_by_vector(pred.numpy(), topn=6)
+            chords, _ = zip(*similar)
+            print(chords)
             if not s:
                 break
 
