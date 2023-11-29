@@ -1,3 +1,4 @@
+import sys
 import json
 import torch
 import torch.nn as nn
@@ -12,13 +13,19 @@ class UltimateGuitarSongDataset(Dataset):
             songs = json.load(f)
             assert isinstance(songs, list)
 
+        songs = [song for song in songs if len(song) > 1 and len(song) < 200]
+        len_ = max(len(song) for song in songs)
+
+        songs = [lst * ((len_ + len(lst) - 1) // len(lst)) for lst in songs]
+        songs = [lst[:len_] for lst in songs]
+
         songs = [
             [torch.from_numpy(chord_vectors[chord].copy()) for chord in song]
             for song in songs
         ]
 
         self.data = []
-        for song in (song for song in songs if len(song) > 1):
+        for song in songs:
             x = torch.stack(song[:-1])
             y = torch.stack(song[1:])
             self.data.append((x, y))
@@ -39,21 +46,18 @@ class LSTMNetwork(nn.Module):
         self.dim = dim
         self.hidden = hidden
 
-        self.lstm = nn.LSTM(self.dim, self.hidden)
+        self.lstm = nn.LSTM(self.dim, self.hidden, batch_first=True)
         self.hidden2out = nn.Linear(self.hidden, self.dim)
 
-    def forward(self, song: torch.Tensor):
-        seq_len = song.size(0)
-        out, _ = self.lstm(song.view(seq_len, 1, -1))
-        pred = self.hidden2out(out.view(seq_len, -1))
+    def forward(self, batch: torch.Tensor):
+        out, _ = self.lstm(batch)
+        pred = self.hidden2out(out)
         return pred
 
 
 def train_loop(dataloader, model, loss, optimizer):
     model.train()
     for batch_num, (x, y) in enumerate(dataloader):
-        x = torch.squeeze(x, 0)
-        y = torch.squeeze(y, 0)
         pred = model(x)
         cost = loss(pred, y)
         cost.backward()
@@ -67,14 +71,14 @@ def test_loop(dataloader, model, loss, wv):
     model.eval()
     test_loss, correct = 0, 0
 
+    (64, 198, 8), (64, 198, 8)
+
     total_len = 0
     with torch.no_grad():
         for x, y in dataloader:
-            x = torch.squeeze(x, 0)
-            y = torch.squeeze(y, 0)
             pred = model(x)
             test_loss += loss(pred, y)
-            total_len += y.size(0)
+            total_len += y.size(1) * y.size(0)
             for pred_, y_ in zip(pred, y):
                 similar = wv.similar_by_vector(pred_.numpy(), topn=5)
                 if any(np.array_equal(wv[chord], y_) for chord, _ in similar):
@@ -89,7 +93,7 @@ def main():
     dim = chord_vectors["C"].size
 
     train_, test_ = random_split(UltimateGuitarSongDataset(chord_vectors), [0.8, 0.2])
-    batch_size = 1
+    batch_size = 64
     train = DataLoader(train_, batch_size=batch_size)
     test = DataLoader(test_, batch_size=batch_size, shuffle=True)
 
@@ -156,4 +160,4 @@ def test():
 
 
 if __name__ == "__main__":
-    test()
+    main()
