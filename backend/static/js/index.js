@@ -1,131 +1,134 @@
-let synth;
-let now;
+class Note {
+    constructor(note, octave) {
+        this._note = note;
+        this._octave = octave;
+    }
 
-let piano_action_history = [];
-let piano_note_history = [];
+    get octave() { return this._octave; }
+    get note() { return this._note; }
 
-let mouse_down = 0;
-document.body.onpointerdown = function() { ++mouse_down; }
-document.body.onpointerup = function() { --mouse_down; }
+    is_accidental = () => this._note.length > 1;
+    toString = () => `${this._note}${this._octave}`;
+    order = () => ['C', 'D', 'E', 'F', 'G', 'A', 'B'].indexOf(this._note[0]);
+}
 
+class Renderer {
+    constructor(canvas) {
+        canvas.width = parseInt(getComputedStyle(canvas).width);
+        canvas.height = parseInt(getComputedStyle(canvas).height);
+        this.note_width = getComputedStyle(document.body).getPropertyValue('--white-key-width');
+        this.canvas = canvas;
+        this.context = canvas.getContext("2d");
+    }
 
-function render_canvas() {
-    const milliseconds_to_pixels = (msec) => msec / 1000 * 60;
-    const canvas = document.getElementById("piano-notes");
-    canvas.width = parseInt(getComputedStyle(canvas).width);
-    canvas.height = parseInt(getComputedStyle(canvas).height);
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    static sec_to_pixels = (msec) => msec * 60;
 
-    let render_time = +new Date();
-    let natural_notes_order = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-    for (let { note, octave, start_time, end_time } of piano_note_history) {
-        let y = canvas.height - milliseconds_to_pixels(render_time - start_time)
-        const width = getComputedStyle(document.body).getPropertyValue('--white-key-width');
-        if (end_time === Infinity) end_time = render_time;
-        let height = milliseconds_to_pixels(end_time - start_time);
-        let is_accidental = note[1] === "#";
-        let order = natural_notes_order.indexOf(note[0])
-        let x = ((octave - 2) * 7 + order + 0.5 * is_accidental) * width;
-        ctx.fillStyle = `hsl(${(order + (0.5 * is_accidental)) * 360 / 7}, 50%, 50%)`;
-        ctx.fillRect(x, y, width, height);
+    static get_note_fill_color({ note, time, duration, velocity, current }) {
+        let hue = (note.order() + (0.5 * note.is_accidental())) * 360 / 7;
+        let saturation = current ? "100%" : "60%";
+        let lightness = current ? "60%" : "40%";
+        let alpha = velocity;
+        return `hsl(${hue}, ${saturation}, ${lightness}, ${alpha})`;
+    }
+
+    render_notes() {
+        let track_elapsed = Tone.Transport.seconds;
+        for (let note_event of state.notes) {
+            let { note, time, duration, velocity } = note_event;
+
+            let width = this.note_width;
+            let height = Renderer.sec_to_pixels(duration);
+            let x = ((note.octave - 2) * 7 + note.order() + 0.5 * note.is_accidental()) * width;
+            let y = this.canvas.height + Renderer.sec_to_pixels(track_elapsed - time);
+
+            let current = y - height < this.canvas.height && y > this.canvas.height;
+            let color = Renderer.get_note_fill_color({ note, time, duration, velocity, current });
+            this.context.fillStyle = color
+            this.context.fillRect(x, y - height, width, height);
+        }
+    }
+
+    render_progress_bar() {
+        let track_elapsed = Tone.Transport.seconds;
+        const track_total = state.notes.reduce((accumulator, { time, duration }) => Math.max(accumulator, time + duration), 0);
+        let progress = (track_total - track_elapsed) / track_total;
+        this.context.fillStyle = "#aaaaaa";
+        this.context.fillRect(0, 0, this.canvas.width * (1 - progress), 5);
+    }
+
+    render() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.render_notes();
+        this.render_progress_bar();
     }
 }
 
+let state = {
+    synth: new Tone.PolySynth(Tone.Synth).toDestination(),
+    track: null,
+    notes: [],
+    renderer: new Renderer(document.getElementById("piano-notes")),
+};
 
-function generate_piano_note_history_from_action_history() {
-    const map = new Map();
-    piano_note_history = [];
-    for (let { type, note, octave, timestamp } of piano_action_history) {
-        let key = `${note}${octave}`;
-        if (map.has(key) && type !== "stop" || !map.has(key) && type === "stop") {
-            continue; // ignore invalid states
-        }
-        if (type == "start") {
-            map.set(key, { note, octave, timestamp });
-        } else if (type == "stop") {
-            let start_note = map.get(key);
-            piano_note_history.push({ note, octave, start_time: start_note.timestamp, end_time: timestamp });
-            map.delete(key);
-        }
-    }
 
-    for (let [_, value] of map) {
-        let { note, octave, timestamp } = value;
-        piano_note_history.push({ note, octave, start_time: timestamp, end_time: Infinity });
+function setup_button_callbacks() {
+    let notes = document.querySelectorAll('.piano-keys > div > button[data-note]');
+    for (let note of notes) {
+        note.addEventListener("click", () => {
+            state.synth.triggerAttackRelease(note.dataset.note, "8n", Tone.now());
+        });
     }
 }
 
-function piano_on_action({ type, note, octave }) {
-    let timestamp = +new Date();
-    if (piano_action_history.length > 200) {
-        piano_action_history = piano_action_history.slice(100);
-    }
-    if (type === "start") {
-        synth.triggerAttack(`${note}${octave}`, now);
-    } else {
-        synth.triggerRelease(`${note}${octave}`, now + 1);
-    }
-    piano_action_history.push({ type, note, octave, timestamp });
-    generate_piano_note_history_from_action_history();
+function setup_renderer() {
+    setInterval(state.renderer.render.bind(state.renderer), 25);
 }
 
-function piano_on_event(event) {
-    let event_type = event.type;
-    let node = event.target;
-
-    if (event_type == "pointerdown") {
-        mouse_down += 1;
-        event.stopPropagation();
-    } else if (event_type == "pointerup") {
-        mouse_down -= 1;
-        event.stopPropagation();
-    }
-
-    if (mouse_down) {
-        if (event_type == "pointerdown" || event_type == "pointerover") {
-            piano_on_action({ type: "start", note: node.dataset.note, octave: node.dataset.octave });
-        } else if (event_type == "pointerout" || event_type == "pointerup") {
-            piano_on_action({ type: "stop", note: node.dataset.note, octave: node.dataset.octave });
+function setup_sample_songs_selector() {
+    fetch("/song_list").then(async (response) => {
+        let data = await response.json();
+        let select = document.getElementById("sample-songs");
+        let options = "";
+        for (let i = 0; i < data.length; i++) {
+            let name = data[i];
+            options += `<option value="${i}"> ${name} </option>`;
         }
-    } else {
-        if (event_type == "pointerup") {
-            piano_on_action({ type: "stop", note: node.dataset.note, octave: node.dataset.octave });
+        select.innerHTML = options;
+        load();
+    });
+}
+
+
+function load() {
+    let selected_song = document.getElementById("sample-songs").selectedOptions[0].value;
+    fetch(`/song/${selected_song}`).then(async (response) => {
+        if (state.track !== null) {
+            state.track.dispose();
         }
-    }
+
+        let data = await response.json();
+        state.notes = data.map((section) => {
+            return {
+                note: new Note(section.note, section.octave),
+                time: section.start_time / 1000,
+                duration: (section.end_time - section.start_time) / 1000,
+                velocity: section.velocity / 100,
+            };
+        });
+
+        state.track = new Tone.Part(((time, value) => {
+            state.synth.triggerAttackRelease(value.note.toString(), value.duration, time, value.velocity);
+        }), state.notes).start(0);
+
+        Tone.Transport.stop();
+    });
 }
 
 function main() {
-    synth = new Tone.PolySynth(Tone.Synth).toDestination();
-    now = Tone.now();
-
-    let notes = document.querySelectorAll('.piano-keys > div > div[data-note]');
-    for (let note of notes) {
-        note.addEventListener("pointerdown", piano_on_event);
-        note.addEventListener("pointerup", piano_on_event);
-        note.addEventListener("pointerover", piano_on_event);
-        note.addEventListener("pointerout", piano_on_event);
-    }
-
-    setInterval(render_canvas, 25);
+    setup_button_callbacks();
+    setup_renderer();
+    setup_sample_songs_selector();
 }
 
-function download_and_play() {
-    fetch("/song").then(async (response) => {
-        let data = await response.json();
-        let current_time = +new Date();
-        now = Tone.now();
-        for (let section of data) {
-            synth.triggerAttackRelease(
-                `${section.note}${section.octave}`,
-                (section.end_time - section.start_time) / 1000,
-                now + section.start_time / 1000,
-            );
-            section.start_time += current_time;
-            section.end_time += current_time;
-        }
-        piano_note_history = data;
-    });
-}
 
 document.addEventListener("DOMContentLoaded", main);
