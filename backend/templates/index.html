@@ -53,14 +53,13 @@
     <div class="piano">
         <div class="piano-controls">
             <div class="form-floating">
-                <select onchange="load()" name="sample-songs" class="form-select" id="sample-songs" aria-label="Sample songs" required>
+                <select onchange="load()" name="sample-songs" class="form-select form-select-sm" id="sample-songs" aria-label="Sample songs" required>
                 </select>
                 <label for="sample-songs"><i class="fa fa-music"></i>&nbsp; Sample songs</label>
             </div>
             <div class="d-flex flex-row" style="gap: 1rem">
-                <button class="btn btn-primary rounded-circle" onclick="Tone.Transport.start()"> <i class="fa fa-play"></i> </button>
-                <button class="btn btn-primary rounded-circle" onclick="Tone.Transport.pause()"> <i class="fa fa-pause"></i> </button>
-                <button class="btn btn-primary rounded-circle" onclick="Tone.Transport.stop()"> <i class="fa fa-stop"></i> </button>
+                <button class="btn btn-outline-primary btn-outlined rounded-pill" onclick="toggle()"> <i class="fa fa-play"></i> | <i class="fa fa-pause"></i>  </button>
+                <button class="btn btn-outline-primary rounded-circle" onclick="Tone.Transport.stop()"> <i class="fa fa-stop"></i> </button>
             </div>
         </div>
 

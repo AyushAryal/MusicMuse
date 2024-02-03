@@ -7,6 +7,11 @@ app = Flask(__name__)
 PROJECT_NAME = "MuseGen"
 
 AVAILABLE_SONGS = [
+    Path("res/adl-piano-midi/Electronic/Disco/Cândido/Viajando Sem Rumo.mid"),
+    Path("res/midi/moonlight.mid"),
+    Path("res/midi/unravel.mid"),
+    Path("res/midi/ngnl.mid"),
+    Path("res/midi dataset/Allure/All_Cried_Out.mid"),
     Path(
         "res/adl-piano-midi/Classical/Japanese Classical/Michiru Oshima/Beaming Sunlight.mid"
     ),
@@ -18,8 +23,6 @@ AVAILABLE_SONGS = [
         "res/adl-piano-midi/Rock/Album Rock/Fleetwood Mac/Silver Springs (Live Album Version).mid"
     ),
     Path("res/adl-piano-midi/Classical/Operatic Pop/Lara Fabian/Tout.mid"),
-    Path("res/midi dataset/Allure/All_Cried_Out.mid"),
-    Path("res/adl-piano-midi/Electronic/Disco/Cândido/Viajando Sem Rumo.mid"),
     Path("res/midi dataset/ABBA/Dancing_Queen.mid"),
     Path("res/midi dataset/Aqua/Barbie_Girl.mid"),
     Path("res/midi dataset/Linkin_Park/One_Step_Closer.mid"),
@@ -42,16 +45,17 @@ def index():
 
 
 def convert_midi_to_structure(midi_file_path):
+    track_list = []
+
     midi = mido.MidiFile(midi_file_path)
-    song_data = []
-
     ticks_per_beat = midi.ticks_per_beat
-
-    channels = [{} for _ in range(17)]
 
     for track in midi.tracks:
         current_time = 0
-        tempo = 600000  # Default tempo in microseconds per beat
+        tempo = 600000
+        channels = [{} for _ in range(17)]
+        track_data = []
+
         for msg in track:
             if msg.type == "set_tempo":
                 tempo = msg.tempo
@@ -73,7 +77,7 @@ def convert_midi_to_structure(midi_file_path):
                     start_time = info["time"]
                     velocity = info["velocity"]
                     end_time = current_time
-                    song_data.append(
+                    track_data.append(
                         {
                             "note": note,
                             "octave": octave,
@@ -82,7 +86,9 @@ def convert_midi_to_structure(midi_file_path):
                             "end_time": end_time,
                         }
                     )
-    return song_data
+
+        track_list.append({"name": track.name, "data": track_data})
+    return track_list
 
 
 def convert_midi_to_note_octave(note_number):

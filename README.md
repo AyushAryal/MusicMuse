@@ -15,7 +15,7 @@ Firstly, lets define pitch.
 
 Music notation is any system used to visually represent aurally perceived music. Lets take a look at a subset of this notation which deals with pitch.
 
-The chromatic scale is a set of twelve pitches used in music. 
+The chromatic scale is a set of twelve pitches used in music.
 
 $$C \;\; C\# \;\; D \;\; D\# \;\; E \;\; F \;\; F\# \;\; G \;\; G\# \;\; A \;\; A\# \;\; B$$
 
@@ -28,7 +28,6 @@ A4 is usually used as the reference note with frequency 440Hz. A5 is thus an oct
 
 MIDI (Musical Instrument Digital Interface) is a standard interface recognized by several musical instruments and processors. In MIDI the middle C note (C4) is represented with the number 60. A note that is a semitone higher is represented by a number one higher than the previous. Similary, a note that is a semitone lower is represented by a number one less than the previous. For A4, which is 9 semitones higher than C4, the midi representation is 69.
 
-
 ### Mapping frequency to musical notation
 
 We can leverage MIDI to convert frequency to musical notation.
@@ -36,7 +35,6 @@ We can leverage MIDI to convert frequency to musical notation.
 The function to convert a frequency to MIDI number is:
 
 $$  M(f) = 69 + 12 \cdot \log_2{\frac{x}{440}} $$
-
 
 Then we can map the MIDI number to notation from the definition of MIDI.
 
@@ -58,11 +56,9 @@ When you look at a single note produced by an insturment, we can observe that it
 This is because multiples of fundamental frequency is also present in the signal (called overtones)
 This is the reason why the signal is not a perfect sine wave.
 
-
 ### Autocorrelation
 
 Autocorrelation, sometimes known as serial correlation in the discrete time case, is the correlation of a signal with a delayed copy of itself as a function of delay. This is similar to a cross-correlation operation, which itself is similar to a convolution.
-
 
 Lets start with the convolution function:
 
@@ -86,7 +82,6 @@ For the discrete case, this becomes,
 
 $$a(t) = \sum_{x = 0}^{N}{ f(x)f(x-t)}$$
 
-
 The figure below illustrates the three functions
 
 <center><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Comparison_convolution_correlation.svg/600px-Comparison_convolution_correlation.svg.png"></center>
@@ -101,12 +96,29 @@ Therefore we can figure out the time delta when the signal becomes periodic. Thi
 
 A naive implementation of autocorrelation that selects the first instance of periodicity, will always prefer higher octaves. Since higher frequencies show their periodic nature faster. This is also known as "octave-error" which is a common limitation of autocorrelation. This can be circumvented partly. We can switch to the frequency domain, and look at the frequency with highest intensity. Similarly, we can simply filter improbable notes which are too high to sing/play. It is also possible to not select the first instance of periodicity, but instead select the most probable one.
 
-
 ### Spectogram
 
 A spectogram is a 2D representation of a signal. It is a visual way of representing the signal strength, or “loudness”, of a signal over time at various frequencies present in a particular waveform. This is useful for audio analysis because this is a complete description of a signal which contains constituent frequencies at every time interval.
 
-
 The strength f(A) is represeted in decibels (dB) which is a standard logarithmic scale over amplitude (A). Humans also perceive strength of a audio signal logarithmically.
 
 $$ f(A) = 10 \cdot \log_{10}{A} $$
+
+PROGRESS
+
+Pitch Detection:
+upgraded from Auto correlation algorithm to pYIN algorithm.
+
+Chord progression:
+Data scrapping -> scraped UltimateGuitar webisite for 5k songs of varied genres.
+Preprocessing -> automated data clean up with custom scripting, data augumentation.
+Generate Chord2VecEmbeddings -> (Model learns music theory)
+Models implemented -> as part of the the learning process we implemented Vanilla Neural network, RNN and LSTM with accuracy of ..%, ..% and 81% accuracy. Currently researching on other models like Trasnformers and TCN. Decide on the final model after careful evaluation.
+
+Melody generation:
+Data -> downloaded midi data of over 10k songs spanning over half a decade of released popular songs.
+preprocessinh -> Active in this stage.
+Models -> Not implemented yet.
+
+UI:
+Basic web UI implemented using HTML, Javascript, css and Flask(plan to finish this after completion of the generation models)

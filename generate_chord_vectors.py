@@ -42,6 +42,14 @@ def plot_chord_vectors_3d(chord_progressions: List[List[Chord]], model):
     plt.show()
 
 
+def print_chord_vectors_nd(chord_progressions: List[List[Chord]], model):
+    vocab = functools.reduce(
+        operator.or_, (set(progression) for progression in chord_progressions)
+    )
+    data = [(chord, list(model.wv[chord])) for chord in vocab]
+    print(data)
+
+
 def generate_chord_vectors(chord_progressions, args):
     model = chord2vec(
         chord_progressions,
@@ -112,6 +120,8 @@ def main():
             plot_chord_vectors_3d(chord_progressions, model)
         else:
             print(f"Cannot plot vector of size: {args.dimensions}")
+            print("Showing list of vectors instead")
+            print_chord_vectors_nd(chord_progressions, model)
 
 
 if __name__ == "__main__":

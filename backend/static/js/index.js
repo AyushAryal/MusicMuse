@@ -31,26 +31,82 @@ class Renderer {
         return `hsl(${hue}, ${saturation}, ${lightness}, ${alpha})`;
     }
 
+    render_waveform() {
+        let scaleY = 10;
+        let offsetX = this.canvas.width - 60;
+        let offsetY = 60;
+
+        const waveformValues = state.waveform.getValue();
+        const pointsToAverage = 16;
+
+        let averagePoints = []
+        for (let i = 0; i < waveformValues.length; i += pointsToAverage) {
+            averagePoints.push(
+                waveformValues
+                    .slice(i, i + pointsToAverage)
+                    .reduce((acc, val) => acc + val, 0) * scaleY / pointsToAverage
+            );
+        }
+
+        const to_polar = (x, y) => {
+            const inner_radius = 50;
+            let theta = (x / (averagePoints.length - 2)) * (2 * Math.PI);
+            let radius = inner_radius + y;
+            return [theta, radius];
+        }
+
+        this.context.beginPath();
+        let [initialTheta, initialR] = to_polar(0, 0);
+        let [initialX, initialY] = [initialR * Math.cos(initialTheta), initialR * Math.sin(initialTheta)];
+        this.context.moveTo(initialX + offsetX, initialY + offsetY);
+
+        for (let i = 1; i < averagePoints.length - 1; i += 2) {
+            let pointA = averagePoints[i - 1];
+            let pointB = averagePoints[i];
+            let pointC = averagePoints[i + 1];
+            let [controlPointTheta, controlPointR] = to_polar(i, 2 * pointB - 0.5 * (pointA + pointC));
+            if (i + 2 >= averagePoints.length - 1) { pointC = 0; }
+            let [theta, r] = to_polar(i + 1, pointC);
+            if (i + 2 >= averagePoints.length - 1) { theta = 0; }
+            let [controlPointX, controlPointY] = [controlPointR * Math.cos(controlPointTheta), controlPointR * Math.sin(controlPointTheta)];
+            let [x, y] = [r * Math.cos(theta), r * Math.sin(theta)];
+            this.context.quadraticCurveTo(controlPointX + offsetX, controlPointY + offsetY, x + offsetX, y + offsetY);
+        }
+
+        this.context.strokeStyle = `hsl(${180 + Math.sin(+new Date() / 3000) * 180}, 40%, 60%)`;
+        this.context.lineWidth = 3;
+        this.context.fillStyle = `hsl(${180 + Math.sin(+new Date() / 3000) * 180}, 40%, 60%, 0.1)`;
+        this.context.fill();
+        this.context.stroke();
+
+        this.context.font = "16px Arial";
+        this.context.fillStyle = `hsl(${180 + Math.sin(+new Date() / 3000) * 180}, 40%, 60%)`;
+        this.context.fillText("MuseGen", this.canvas.width - 95, 65);
+    }
+
     render_notes() {
         let track_elapsed = Tone.Transport.seconds;
-        for (let note_event of state.notes) {
-            let { note, time, duration, velocity } = note_event;
+        for (let track of state.track_list) {
+            for (let { note, time, duration, velocity } of track.data) {
+                let width = this.note_width;
+                let height = Renderer.sec_to_pixels(duration);
+                let x = ((note.octave - 2) * 7 + note.order() + 0.5 * note.is_accidental()) * width;
+                let y = this.canvas.height + Renderer.sec_to_pixels(track_elapsed - time);
 
-            let width = this.note_width;
-            let height = Renderer.sec_to_pixels(duration);
-            let x = ((note.octave - 2) * 7 + note.order() + 0.5 * note.is_accidental()) * width;
-            let y = this.canvas.height + Renderer.sec_to_pixels(track_elapsed - time);
-
-            let current = y - height < this.canvas.height && y > this.canvas.height;
-            let color = Renderer.get_note_fill_color({ note, time, duration, velocity, current });
-            this.context.fillStyle = color
-            this.context.fillRect(x, y - height, width, height);
+                let current = y - height < this.canvas.height && y > this.canvas.height;
+                let color = Renderer.get_note_fill_color({ note, time, duration, velocity, current });
+                this.context.fillStyle = color
+                this.context.fillRect(x, y - height, width, height);
+            }
         }
     }
 
     render_progress_bar() {
         let track_elapsed = Tone.Transport.seconds;
-        const track_total = state.notes.reduce((accumulator, { time, duration }) => Math.max(accumulator, time + duration), 0);
+        const track_total = state.track_list.reduce((accumulator, track) => {
+            let max_duration_in_track = track.data.reduce((acc, { time, duration }) => Math.max(acc, time + duration), 0);
+            return Math.max(accumulator, max_duration_in_track);
+        }, 0);
         let progress = (track_total - track_elapsed) / track_total;
         this.context.fillStyle = "#aaaaaa";
         this.context.fillRect(0, 0, this.canvas.width * (1 - progress), 5);
@@ -59,16 +115,18 @@ class Renderer {
     render() {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.render_notes();
+        this.render_waveform();
         this.render_progress_bar();
     }
 }
 
 let state = {
     synth: new Tone.PolySynth(Tone.Synth).toDestination(),
-    track: null,
-    notes: [],
+    waveform: new Tone.Waveform,
+    track_list: [],
     renderer: new Renderer(document.getElementById("piano-notes")),
 };
+
 
 
 function setup_button_callbacks() {
@@ -80,8 +138,8 @@ function setup_button_callbacks() {
     }
 }
 
-function setup_renderer() {
-    setInterval(state.renderer.render.bind(state.renderer), 25);
+function setup_track_list() {
+    state.track_list.map((track) => { })
 }
 
 function setup_sample_songs_selector() {
@@ -102,33 +160,53 @@ function setup_sample_songs_selector() {
 function load() {
     let selected_song = document.getElementById("sample-songs").selectedOptions[0].value;
     fetch(`/song/${selected_song}`).then(async (response) => {
-        if (state.track !== null) {
-            state.track.dispose();
-        }
+        for (let track of state.track_list) track.player?.dispose();
 
-        let data = await response.json();
-        state.notes = data.map((section) => {
+        let track_list = await response.json();
+
+        state.track_list = track_list.map(({ name, data }) => {
+            let data_ = data.map((section) => {
+                return {
+                    note: new Note(section.note, section.octave),
+                    time: section.start_time / 1000,
+                    duration: (section.end_time - section.start_time) / 1000,
+                    velocity: section.velocity / 100,
+                };
+            });
+
+            let player = new Tone.Part(((time, value) => {
+                state.synth.triggerAttackRelease(value.note.toString(), value.duration, time, value.velocity);
+            }), data_).start(0);
+
             return {
-                note: new Note(section.note, section.octave),
-                time: section.start_time / 1000,
-                duration: (section.end_time - section.start_time) / 1000,
-                velocity: section.velocity / 100,
+                name: name,
+                data: data_,
+                player: player,
             };
         });
-
-        state.track = new Tone.Part(((time, value) => {
-            state.synth.triggerAttackRelease(value.note.toString(), value.duration, time, value.velocity);
-        }), state.notes).start(0);
 
         Tone.Transport.stop();
     });
 }
 
-function main() {
-    setup_button_callbacks();
-    setup_renderer();
-    setup_sample_songs_selector();
+function toggle() {
+    if (Tone.Transport.state == "stopped" || Tone.Transport.state == "paused") {
+        Tone.Transport.start();
+    } else {
+        Tone.Transport.pause();
+    }
 }
 
+function main() {
+    state.synth.connect(state.waveform);
+
+    setup_button_callbacks();
+    setup_sample_songs_selector();
+    setInterval(state.renderer.render.bind(state.renderer), 25);
+}
+
+document.addEventListener('keydown', function(event) {
+    if (event.code === 'Space') toggle();
+});
 
 document.addEventListener("DOMContentLoaded", main);
