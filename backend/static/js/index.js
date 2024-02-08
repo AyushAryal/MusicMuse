@@ -31,10 +31,18 @@ class Renderer {
         return `hsl(${hue}, ${saturation}, ${lightness}, ${alpha})`;
     }
 
+    render_name() {
+        this.context.font = "16px Arial";
+        this.context.fillStyle = `hsl(${180 + Math.sin(+new Date() / 3000) * 180}, 40%, 60%)`;
+        this.context.fillText("MuseGen", this.canvas.width - 95, 65);
+    }
+
+
     render_waveform() {
+        const CIRCLE_INNER_RADIUS = 50;
         let scaleY = 10;
-        let offsetX = this.canvas.width - 60;
         let offsetY = 60;
+        let offsetX = this.canvas.width - 60;
 
         const waveformValues = state.waveform.getValue();
         const pointsToAverage = 16;
@@ -49,9 +57,8 @@ class Renderer {
         }
 
         const to_polar = (x, y) => {
-            const inner_radius = 50;
             let theta = (x / (averagePoints.length - 2)) * (2 * Math.PI);
-            let radius = inner_radius + y;
+            let radius = CIRCLE_INNER_RADIUS + y;
             return [theta, radius];
         }
 
@@ -78,10 +85,6 @@ class Renderer {
         this.context.fillStyle = `hsl(${180 + Math.sin(+new Date() / 3000) * 180}, 40%, 60%, 0.1)`;
         this.context.fill();
         this.context.stroke();
-
-        this.context.font = "16px Arial";
-        this.context.fillStyle = `hsl(${180 + Math.sin(+new Date() / 3000) * 180}, 40%, 60%)`;
-        this.context.fillText("MuseGen", this.canvas.width - 95, 65);
     }
 
     render_notes() {
@@ -116,6 +119,7 @@ class Renderer {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.render_notes();
         this.render_waveform();
+        this.render_name();
         this.render_progress_bar();
     }
 }
@@ -127,20 +131,6 @@ let state = {
     renderer: new Renderer(document.getElementById("piano-notes")),
 };
 
-
-
-function setup_button_callbacks() {
-    let notes = document.querySelectorAll('.piano-keys > div > button[data-note]');
-    for (let note of notes) {
-        note.addEventListener("click", () => {
-            state.synth.triggerAttackRelease(note.dataset.note, "8n", Tone.now());
-        });
-    }
-}
-
-function setup_track_list() {
-    state.track_list.map((track) => { })
-}
 
 function setup_sample_songs_selector() {
     fetch("/song_list").then(async (response) => {
@@ -200,7 +190,6 @@ function toggle() {
 function main() {
     state.synth.connect(state.waveform);
 
-    setup_button_callbacks();
     setup_sample_songs_selector();
     setInterval(state.renderer.render.bind(state.renderer), 25);
 }

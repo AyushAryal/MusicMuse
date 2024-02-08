@@ -1,4 +1,3 @@
-import sys
 import json
 import torch
 import torch.nn as nn
@@ -13,12 +12,10 @@ class UltimateGuitarSongDataset(Dataset):
             songs = json.load(f)
             assert isinstance(songs, list)
 
-        songs = [song for song in songs if len(song) > 1 and len(song) < 200]
+        songs = [song for song in songs if len(song) > 10 and len(song) < 200]
         len_ = max(len(song) for song in songs)
-
         songs = [lst * ((len_ + len(lst) - 1) // len(lst)) for lst in songs]
         songs = [lst[:len_] for lst in songs]
-
         songs = [
             [torch.from_numpy(chord_vectors[chord].copy()) for chord in song]
             for song in songs
@@ -26,9 +23,7 @@ class UltimateGuitarSongDataset(Dataset):
 
         self.data = []
         for song in songs:
-            x = torch.stack(song[:-1])
-            y = torch.stack(song[1:])
-            self.data.append((x, y))
+            self.data.append((torch.stack(song[:-1]), torch.stack(song[1:])))
 
     def __len__(self):
         return len(self.data)
@@ -37,65 +32,96 @@ class UltimateGuitarSongDataset(Dataset):
         return self.data[idx]
 
 
-class LSTMNetwork(nn.Module):
-    def __init__(self, dim, hidden=None):
+class RNNetwork(nn.Module):
+    def __init__(self, input_size, output_size, hidden_size, state_size):
         super().__init__()
-        if not hidden:
-            hidden = dim
 
-        self.dim = dim
-        self.hidden = hidden
+        self.input_size = input_size
+        self.output_size = output_size
+        self.hidden_size = hidden_size
+        self.state_size = state_size
 
-        self.lstm = nn.LSTM(self.dim, self.hidden, batch_first=True)
-        self.hidden2out = nn.Linear(self.hidden, self.dim)
+        self.i2s = torch.nn.Linear(self.input_size + self.state_size, self.state_size)
+        self.i2h = torch.nn.Linear(self.input_size + self.state_size, self.hidden_size)
+        self.h2h = torch.nn.Linear(self.hidden_size, self.hidden_size)
+        self.h2o = torch.nn.Linear(self.hidden_size, self.output_size)
+        self.dropout = torch.nn.Dropout(0.1)
+        self.softmax = torch.nn.LogSoftmax(dim=0)
 
-    def forward(self, batch: torch.Tensor):
-        out, _ = self.lstm(batch)
-        pred = self.hidden2out(out)
-        return pred
+    def forward(self, i: torch.Tensor, state: torch.Tensor):
+        i_ = torch.cat((i, state))
+        s = self.i2s(i_)
+        h = self.i2h(i_)
+        h2 = self.h2h(torch.relu(h))
+        o = self.h2o(torch.relu(h2))
+        o = self.dropout(o)
+        return self.softmax(o), s
+
+    def init_hidden(self):
+        return torch.zeros(self.state_size)
 
 
-def train_loop(dataloader, model, loss, optimizer):
+def train_loop(dataloader, model, loss, optimizer, epoch):
     model.train()
-    for batch_num, (x, y) in enumerate(dataloader):
-        pred = model(x)
-        cost = loss(pred, y)
+    total_loss = 0
+    for batch_idx, (batched_x, batched_y) in enumerate(dataloader):
+        cost = 0
+        for x, y in zip(batched_x, batched_y):
+            state = model.init_hidden()
+            for i, (x_, y_) in enumerate(zip(x, y)):
+                pred, state = model(x_, state)
+                cost += loss(pred, y_)
+
         cost.backward()
-        optimizer.step()
-        optimizer.zero_grad()
-        if batch_num % 1000 == 0:
-            print(f"Loss: {cost:>7f}")
+
+        if (batch_idx + 1) % 10 == 0:
+            optimizer.step()
+            optimizer.zero_grad()
+
+        batch_loss = cost.item() / (batched_x.size(0) * batched_x.size(1) * batched_x.size(2))
+        print(f"Batch {batch_idx} loss: {batch_loss}")
+
+        total_loss += batch_loss
+
+    return total_loss
 
 
-def test_loop(dataloader, model, loss, wv):
+def test_loop(dataloader, model, loss, wv, epoch):
     model.eval()
     test_loss, correct = 0, 0
-
-    (64, 198, 8), (64, 198, 8)
-
     total_len = 0
     with torch.no_grad():
-        for x, y in dataloader:
-            pred = model(x)
-            test_loss += loss(pred, y)
-            total_len += y.size(1) * y.size(0)
-            for pred_, y_ in zip(pred, y):
-                similar = wv.similar_by_vector(pred_.numpy(), topn=5)
-                if any(np.array_equal(wv[chord], y_) for chord, _ in similar):
-                    correct += 1
+        for batch_idx, (batched_x, batched_y) in enumerate(dataloader):
+            batch_loss = 0
+            for x, y in zip(batched_x, batched_y):
+                state = model.init_hidden()
+                for x_, y_ in zip(x, y):
+                    pred, state = model(x_, state)
+                    batch_loss += loss(pred, y_)
+                    similar = wv.similar_by_vector(pred.numpy(), topn=3)
+                    if any(np.array_equal(wv[chord], y_) for chord, _ in similar):
+                        correct += 1
+            batch_loss /= batched_x.size(0) * batched_x.size(1)
+            print(f"Test Batch {batch_idx} loss: {batch_loss}")
+            test_loss += batch_loss
+            total_len += batched_x.size(0) * batched_x.size(1) * batched_x.size(2)
     correct = correct / total_len * 100
-    test_loss /= len(dataloader)
     print(f"Accuracy: {correct:>0.1f}, Average Loss: {test_loss:>8f}")
+
+
+HIDDEN_SIZE = 10
+STATE_SIZE = 10
 
 
 def main():
     chord_vectors = KeyedVectors.load("./out/vectors.bin")
     dim = chord_vectors["C"].size
 
-    train_, test_ = random_split(UltimateGuitarSongDataset(chord_vectors), [0.8, 0.2])
-    batch_size = 64
-    train = DataLoader(train_, batch_size=batch_size)
-    test = DataLoader(test_, batch_size=batch_size, shuffle=True)
+    _, train_, test_ = random_split(
+        UltimateGuitarSongDataset(chord_vectors), [0.00, 0.80, 0.20]
+    )
+    train = DataLoader(train_, batch_size=128, shuffle=True)
+    test = DataLoader(test_, batch_size=128, shuffle=True)
 
     device = (
         "cuda"
@@ -106,15 +132,16 @@ def main():
     )
     print(f"Using {device} device")
 
-    model = LSTMNetwork(dim).to(device)
+    model = RNNetwork(dim, dim, HIDDEN_SIZE, STATE_SIZE).to(device)
     loss = nn.MSELoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-    epochs = 2
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.005)
+    epochs = 15
     for epoch in range(epochs):
         print(f"Epoch: {epoch+1}")
         print("---------------")
-        train_loop(train, model, loss, optimizer)
-        test_loop(test, model, loss, chord_vectors)
+        cost = train_loop(train, model, loss, optimizer, epoch)
+        print("Loss in training: ", cost)
+        test_loop(test, model, loss, chord_vectors, epoch)
 
     torch.save(model.state_dict(), "./out/model.pth")
 
@@ -131,7 +158,7 @@ def test():
         else "cpu"
     )
     print(f"Using {device} device")
-    model = LSTMNetwork(dim).to(device)
+    model = RNNetwork(dim, dim, HIDDEN_SIZE, STATE_SIZE).to(device)
     model.load_state_dict(torch.load("./out/model.pth"))
     model.eval()
 
@@ -145,17 +172,17 @@ def test():
             if chord_sequence_str == "":
                 break
 
-            chord_sequence = torch.stack(
-                [
-                    torch.from_numpy(np.copy(chord_vectors[c]))
-                    for c in chord_sequence_str.split()
-                ]
-            )
-            pred = model(chord_sequence)
-            similar = chord_vectors.similar_by_vector(pred[-1].numpy(), topn=6)
+            chord_sequence = [
+                torch.from_numpy(np.copy(chord_vectors[c]))
+                for c in chord_sequence_str.split()
+            ]
+
+            state = model.init_hidden()
+            pred = None
+            for chord in chord_sequence:
+                pred, state = model(chord, state)
+            similar = chord_vectors.similar_by_vector(pred.numpy(), topn=6)
             chords, _ = zip(*similar)
-            print(chord_sequence)
-            print(pred)
             print(chords)
 
 
