@@ -8,6 +8,7 @@
 }
 
 body {
+    color: #fff !important;
     background-color: #002 !important;
 }
 
@@ -17,7 +18,6 @@ body {
     align-items: center;
     justify-content: space-evenly;
     margin: 1rem;
-    gap: 1rem;
 }
 
 .piano-controls {
@@ -91,6 +91,6 @@ body {
     border-top: 0;
 }
 
-#staff {
-    background-color: white;
+#score {
+    background-color: #eaeaea;
 }

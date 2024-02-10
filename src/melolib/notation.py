@@ -1,5 +1,13 @@
 from dataclasses import dataclass
 import enum
+import abc
+from typing_extensions import override
+
+
+class JsonSerializable(abc.ABC):
+    @abc.abstractmethod
+    def to_json():
+        ...
 
 
 class DurationClass(enum.Enum):
@@ -38,7 +46,7 @@ class Duration:
 
 
 @dataclass
-class Rest:
+class Rest(JsonSerializable):
     duration: Duration
 
     def __str__(self):
@@ -50,9 +58,13 @@ class Rest:
     def __repr__(self):
         return self.__str__()
 
+    @override
+    def to_json(self):
+        return {"keys": ["B/4"], "duration": str(self)}
+
 
 @dataclass
-class StaffNote:
+class StaffNote(JsonSerializable):
     note: str
     octave: int
     duration: Duration
@@ -62,6 +74,30 @@ class StaffNote:
 
     def __repr__(self):
         return self.__str__()
+
+    @override
+    def to_json(self):
+        return {"keys": [f"{self.note}/{self.octave}"], "duration": str(self.duration)}
+
+
+@dataclass
+class PolyStaffNote(JsonSerializable):
+    notes: list[StaffNote]
+
+    def __str__(self):
+        duration = self.notes[0].duration
+        chord = " ".join(f"{note.note}/{note.octave}" for note in self.notes)
+        return f"({chord})/{duration}"
+
+    def __repr__(self):
+        return self.__str__()
+
+    @override
+    def to_json(self):
+        return {
+            "keys": [f"{note.note}/{note.octave}" for note in self.notes],
+            "duration": str(self.notes[0].duration),
+        }
 
 
 def convert_ticks_to_duration(ticks_per_beat, delta_ticks):
@@ -90,7 +126,13 @@ def generate_score_from_parsed_midi(parsed):
             if rest > 0:
                 duration = convert_ticks_to_duration(ticks_per_beat, rest)
                 if duration.duration_class.value < DurationClass.SixtyFourth.value:
-                    score.append(Rest(duration))
+                    score.append(
+                        {
+                            "start_tick": note["start_tick"],
+                            "end_tick": last_end_tick,
+                            "notation": Rest(duration),
+                        }
+                    )
 
             # Calculate note
             delta_ticks = note["end_tick"] - note["start_tick"]
@@ -99,16 +141,34 @@ def generate_score_from_parsed_midi(parsed):
 
             # Check if note is played simultaneously
             if note["start_tick"] == last_start_tick and len(score) != 0:
-                if isinstance(score[-1], list):
-                    score[-1].append(staff_note)
-                elif isinstance(score[-1], StaffNote):
-                    score[-1] = [score[-1], staff_note]
+                prev_staff_note = score[-1]
+                if isinstance(prev_staff_note["notation"], PolyStaffNote):
+                    prev_staff_note["notation"] = PolyStaffNote(
+                        prev_staff_note["notation"].notes + [staff_note]
+                    )
+                elif isinstance(prev_staff_note["notation"], StaffNote):
+                    prev_staff_note["notation"] = PolyStaffNote(
+                        [prev_staff_note["notation"], staff_note]
+                    )
+                score[-1] = prev_staff_note
             else:
-                score.append(staff_note)
+                score.append(
+                    {
+                        "start_tick": note["start_tick"],
+                        "end_tick": note["end_tick"],
+                        "notation": staff_note,
+                    }
+                )
 
             # Update last ticks
             last_start_tick = max(last_start_tick, note["start_tick"])
             last_end_tick = max(last_end_tick, note["end_tick"])
+
+        # serialize StaffNote, PolyStaffNote, Rest
+        for i, note in enumerate(score):
+            if isinstance(note["notation"], JsonSerializable):
+                note["notation"] = note["notation"].to_json()
+                score[i] = note
 
         scores.append({"name": track["name"], "data": score})
     return scores

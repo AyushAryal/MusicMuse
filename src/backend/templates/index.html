@@ -16,9 +16,8 @@
     <script defer src="{{ url_for('static', filename='js/index.js') }}"></script>
 </head>
 
-<body class="text-light">
+<body>
     <h1 class="display-1 mt-5 text-center"><i class="fa fa-music"></i> {{ project_name }}</h1>
-    <div id="staff"> </div>
     <form method="post" action="/generate" enctype="multipart/form-data"
         class="container pt-5 mt-5 d-flex flex-column gap-4 main-form col-md-6 col-10">
         <div>
@@ -53,16 +52,8 @@
     </form>
 
     <div class="piano">
-        <div class="piano-controls">
-            <div class="form-floating">
-                <select onchange="load()" name="sample-songs" class="form-select form-select-sm" id="sample-songs" aria-label="Sample songs" required>
-                </select>
-                <label for="sample-songs"><i class="fa fa-music"></i>&nbsp; Sample songs</label>
-            </div>
-            <div class="d-flex flex-row" style="gap: 1rem">
-                <button class="btn btn-outline-primary btn-outlined rounded-pill" onclick="toggle()"> <i class="fa fa-play"></i> | <i class="fa fa-pause"></i>  </button>
-                <button class="btn btn-outline-primary rounded-circle" onclick="Tone.Transport.stop()"> <i class="fa fa-stop"></i> </button>
-            </div>
+        <div class="d-flex flex-column w-100 align-items-center">
+            <div id="score"> </div>
         </div>
 
         <div class="piano-renderer"> 
@@ -152,6 +143,18 @@
                     <button data-note="A#" data-octave="6"></button>
                     <button></button>
                 </div>
+            </div>
+        </div>
+
+        <div class="piano-controls">
+            <div class="form-floating">
+                <select onchange="load()" name="sample-songs" class="form-select form-select-sm" id="sample-songs" aria-label="Sample songs" required>
+                </select>
+                <label for="sample-songs"><i class="fa fa-music"></i>&nbsp; Sample songs</label>
+            </div>
+            <div class="d-flex flex-row" style="gap: 1rem">
+                <button class="btn btn-outline-primary btn-outlined rounded-pill" onclick="toggle()"> <i class="fa fa-play"></i> | <i class="fa fa-pause"></i>  </button>
+                <button class="btn btn-outline-primary rounded-circle" onclick="stop()"> <i class="fa fa-stop"></i> </button>
             </div>
         </div>
     </div>

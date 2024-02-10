@@ -1,3 +1,5 @@
+"use strict";
+
 class Note {
     constructor(note, octave) {
         this._note = note;
@@ -12,7 +14,7 @@ class Note {
     order = () => ['C', 'D', 'E', 'F', 'G', 'A', 'B'].indexOf(this._note[0]);
 }
 
-class Renderer {
+class PianoNotesRenderer {
     constructor(canvas) {
         canvas.width = parseInt(getComputedStyle(canvas).width);
         canvas.height = parseInt(getComputedStyle(canvas).height);
@@ -89,15 +91,15 @@ class Renderer {
 
     render_notes() {
         let track_elapsed = Tone.Transport.seconds;
-        for (let track of state.track_list) {
+        for (let track of state.song.midi.tracks) {
             for (let { note, time, duration, velocity } of track.data) {
                 let width = this.note_width;
-                let height = Renderer.sec_to_pixels(duration);
+                let height = PianoNotesRenderer.sec_to_pixels(duration);
                 let x = ((note.octave - 2) * 7 + note.order() + 0.5 * note.is_accidental()) * width;
-                let y = this.canvas.height + Renderer.sec_to_pixels(track_elapsed - time);
+                let y = this.canvas.height + PianoNotesRenderer.sec_to_pixels(track_elapsed - time);
 
                 let current = y - height < this.canvas.height && y > this.canvas.height;
-                let color = Renderer.get_note_fill_color({ note, time, duration, velocity, current });
+                let color = PianoNotesRenderer.get_note_fill_color({ note, time, duration, velocity, current });
                 this.context.fillStyle = color
                 this.context.fillRect(x, y - height, width, height);
             }
@@ -106,7 +108,7 @@ class Renderer {
 
     render_progress_bar() {
         let track_elapsed = Tone.Transport.seconds;
-        const track_total = state.track_list.reduce((accumulator, track) => {
+        const track_total = state.song.midi.tracks.reduce((accumulator, track) => {
             let max_duration_in_track = track.data.reduce((acc, { time, duration }) => Math.max(acc, time + duration), 0);
             return Math.max(accumulator, max_duration_in_track);
         }, 0);
@@ -117,24 +119,99 @@ class Renderer {
 
     render() {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.render_notes();
-        this.render_waveform();
+        if (state.song !== null) {
+            this.render_notes();
+            this.render_waveform();
+            this.render_progress_bar();
+        }
         this.render_name();
-        this.render_progress_bar();
     }
 }
 
-let vf = new Vex.Flow.Factory({ renderer: { elementId: 'staff' } });
-let state = {
-    synth: new Tone.PolySynth(Tone.Synth).toDestination(),
-    waveform: new Tone.Waveform,
-    track_list: [],
-    renderer: new Renderer(document.getElementById("piano-notes")),
-    vf: vf,
-    score: vf.EasyScore(),
-    system: vf.System(),
-};
 
+class PianoScoreRenderer {
+    constructor(div) {
+        this.width = 900;
+        this.height = 220;
+        this.current_score_index = 1;
+        this.scroll_index = 0;
+        this.num_notes_in_line = 16;
+        this.renderer = new Vex.Flow.Renderer(div, Vex.Flow.Renderer.Backends.SVG);
+        this.renderer.resize(this.width, this.height);
+        this.context = this.renderer.getContext();
+
+        this.treble = new Vex.Flow.Stave(30, 20, this.width - 75);
+        this.treble.addClef("treble");
+        this.treble.setContext(this.context);
+
+        this.bass = new Vex.Flow.Stave(30, 20 + 60, this.width - 75);
+        this.bass.addClef("bass");
+        this.bass.setContext(this.context);
+
+        this.voices = [];
+    }
+
+    static create_stave_note(time, total_duration, { keys, duration }) {
+        let track_elapsed = Tone.Transport.seconds;
+        let stave_note = new Vex.Flow.StaveNote({ keys, duration: duration.replace(".", "").replace(".", "") });
+        if (duration.endsWith("..")) {
+            Vex.Flow.Dot.buildAndAttach([stave_note], { all: true });
+        } else if (duration.endsWith(".")) {
+            Vex.Flow.Dot.buildAndAttach([stave_note], { all: true });
+            Vex.Flow.Dot.buildAndAttach([stave_note], { all: true });
+        }
+
+        let current = (track_elapsed > time && track_elapsed < time + total_duration);
+
+        for (let [idx, key] of keys.entries()) {
+            let [note_repr, octave] = key.split("/");
+            let note = new Note(note_repr, parseInt(octave));
+            let hue = (note.order() + (0.5 * note.is_accidental())) * 360 / 7;
+            let color = current ? "black" : `hsl(${hue}, 90%, 40%, 1)`;
+            stave_note.setKeyStyle(idx, { strokeStyle: color, fillStyle: color });
+            stave_note.setFlagStyle({ strokeStyle: color, fillStyle: color });
+            stave_note.setStemStyle({ strokeStyle: color, fillStyle: color });
+        }
+
+        return stave_note;
+    }
+
+
+    render_voice() {
+        let track_elapsed = Tone.Transport.seconds;
+        const voice = new Vex.Flow.Voice({});
+        let score = state.song.scores[this.current_score_index];
+        if (!score || score.data.length === 0) { return; }
+
+        let current_note_index = score.data.slice(this.scroll_index, this.scroll_index + this.num_notes_in_line).findIndex(({ time, duration }) => {
+            return track_elapsed > time && track_elapsed < time + duration
+        });
+
+        if (current_note_index > 2 * this.num_notes_in_line / 3) {
+            this.scroll_index += this.num_notes_in_line / 2;
+        }
+
+        let notes_ = score.data.slice(this.scroll_index, this.scroll_index + this.num_notes_in_line).map(({ time, duration, notation }) => {
+            return PianoScoreRenderer.create_stave_note(time, duration, notation);
+        });
+
+        voice.setMode(Vex.Flow.Voice.Mode.SOFT);
+        voice.addTickables(notes_);
+        Vex.Flow.Accidental.applyAccidentals([voice], "C");
+        new Vex.Flow.Formatter().joinVoices([voice]).format([voice], 800);
+        voice.draw(this.context, this.treble);
+    }
+
+    render() {
+        this.context.clear();
+        this.treble.draw();
+        this.bass.draw();
+
+        if (state.song !== null) {
+            this.render_voice();
+        }
+    }
+}
 
 function setup_sample_songs_selector() {
     fetch("/song_list").then(async (response) => {
@@ -154,13 +231,33 @@ function setup_sample_songs_selector() {
 function load() {
     let selected_song = document.getElementById("sample-songs").selectedOptions[0].value;
     fetch(`/song/${selected_song}`).then(async (response) => {
-        for (let track of state.track_list) track.player?.dispose();
+        // Setup tonejs and renderer
+        if (state.song !== null) {
+            for (let track of state.song.midi.tracks) track.player?.dispose();
+        }
 
         let song = await response.json();
-        let ticks_per_beat = song.ticks_per_beat;
+        let ticks_per_beat = song.midi.ticks_per_beat;
         let tempo = 120 / 60; // Measured in beats per second
 
-        state.track_list = song.tracks.map(({ name, data }) => {
+        song.scores = song.scores.map(({ name, data }) => {
+            let data_ = data.map((section) => {
+                let start_time = (section.start_tick / ticks_per_beat) / tempo;
+                let end_time = (section.end_tick / ticks_per_beat) / tempo;
+                return {
+                    notation: section.notation,
+                    time: start_time,
+                    duration: end_time - start_time,
+                }
+            });
+
+            return {
+                name: name,
+                data: data_,
+            };
+        });
+
+        song.midi.tracks = song.midi.tracks.map(({ name, data }) => {
             let data_ = data.map((section) => {
                 let start_time = (section.start_tick / ticks_per_beat) / tempo;
                 let end_time = (section.end_tick / ticks_per_beat) / tempo;
@@ -183,6 +280,7 @@ function load() {
             };
         });
 
+        state.song = song;
         Tone.Transport.stop();
     });
 }
@@ -195,15 +293,29 @@ function toggle() {
     }
 }
 
-function main() {
-    state.synth.connect(state.waveform);
-
-    setup_sample_songs_selector();
-    setInterval(state.renderer.render.bind(state.renderer), 25);
+function stop() {
+    Tone.Transport.stop();
+    state.piano_score_renderer.scroll_index = 0;
 }
 
-document.addEventListener('keydown', function(event) {
-    if (event.code === 'Space') toggle();
-});
+function main() {
+    state.synth.connect(state.waveform);
+    setup_sample_songs_selector();
+    setInterval(state.piano_notes_renderer.render.bind(state.piano_notes_renderer), 25);
+    setInterval(state.piano_score_renderer.render.bind(state.piano_score_renderer), 50);
+}
 
+let state = (() => {
+    return {
+        synth: new Tone.PolySynth(Tone.Synth).toDestination(),
+        waveform: new Tone.Waveform,
+        tempo: 120 / 60,
+        song: null,
+        piano_notes_renderer: new PianoNotesRenderer(document.getElementById("piano-notes")),
+        piano_score_renderer: new PianoScoreRenderer(document.getElementById("score")),
+    };
+})();
+
+
+document.addEventListener('keydown', (event) => event.code === 'Space' ? toggle() : null);
 document.addEventListener("DOMContentLoaded", main);
