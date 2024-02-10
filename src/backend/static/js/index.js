@@ -133,7 +133,7 @@ class PianoScoreRenderer {
     constructor(div) {
         this.width = 900;
         this.height = 220;
-        this.current_score_index = 1;
+        this.current_score_index = 0;
         this.scroll_index = 0;
         this.num_notes_in_line = 16;
         this.renderer = new Vex.Flow.Renderer(div, Vex.Flow.Renderer.Backends.SVG);
@@ -169,8 +169,6 @@ class PianoScoreRenderer {
             let hue = (note.order() + (0.5 * note.is_accidental())) * 360 / 7;
             let color = current ? "black" : `hsl(${hue}, 90%, 40%, 1)`;
             stave_note.setKeyStyle(idx, { strokeStyle: color, fillStyle: color });
-            stave_note.setFlagStyle({ strokeStyle: color, fillStyle: color });
-            stave_note.setStemStyle({ strokeStyle: color, fillStyle: color });
         }
 
         return stave_note;
@@ -195,11 +193,19 @@ class PianoScoreRenderer {
             return PianoScoreRenderer.create_stave_note(time, duration, notation);
         });
 
+
+        var beams = Vex.Flow.Beam.generateBeams(notes_);
         voice.setMode(Vex.Flow.Voice.Mode.SOFT);
         voice.addTickables(notes_);
+
         Vex.Flow.Accidental.applyAccidentals([voice], "C");
         new Vex.Flow.Formatter().joinVoices([voice]).format([voice], 800);
+
         voice.draw(this.context, this.treble);
+
+        for (let beam of beams) {
+            beam.setContext(this.context).draw();
+        }
     }
 
     render() {

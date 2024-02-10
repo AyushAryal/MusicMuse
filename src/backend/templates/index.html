@@ -29,7 +29,7 @@
                 <div class="input-group mb-3">
                     <span class="input-group-text"><i class="far fa-clock"></i>&nbsp; Tempo</span>
                     <div class="form-floating">
-                        <input name="tempo" type="number" class="form-control" id="tempo" placeholder="120" required>
+                        <input name="tempo" type="number" class="form-control" id="user-tempo" placeholder="120" required>
                     </div>
                 </div>
             </div>
@@ -147,6 +147,11 @@
         </div>
 
         <div class="piano-controls">
+            <div>
+                <div class="input-group mb-3">
+                  <input type="number" class="form-control" id="tempo" placeholder="Enter a number" min="40" max="240" step="5">
+                </div>
+            </div>
             <div class="form-floating">
                 <select onchange="load()" name="sample-songs" class="form-select form-select-sm" id="sample-songs" aria-label="Sample songs" required>
                 </select>
