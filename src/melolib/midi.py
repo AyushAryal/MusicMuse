@@ -33,7 +33,7 @@ def parse_midi(midi_file_path):
                         {
                             "note": note,
                             "octave": octave,
-                            "velocity": velocity,
+                            "velocity": velocity / 100,
                             "start_tick": start_tick,
                             "end_tick": end_tick,
                         }

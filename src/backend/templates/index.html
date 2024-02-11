@@ -1,170 +1,235 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ project_name }}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-
-    <script defer src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    <script defer src="{{ url_for('static', filename='js/tone.min.js') }}"> </script>
-    <script defer src="{{ url_for('static', filename='js/vexflow.min.js') }}"> </script>
-
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
-    <script defer src="{{ url_for('static', filename='js/index.js') }}"></script>
-</head>
-
-<body>
-    <h1 class="display-1 mt-5 text-center"><i class="fa fa-music"></i> {{ project_name }}</h1>
-    <form method="post" action="/generate" enctype="multipart/form-data"
-        class="container pt-5 mt-5 d-flex flex-column gap-4 main-form col-md-6 col-10">
-        <div>
-            <input name="sample" class="form-control form-control-lg" id="sample" type="file" accept="audio/*"" required>
-        </div>
-
-        <div class=" row">
-            <div class="col-6">
-                <div class="input-group mb-3">
-                    <span class="input-group-text"><i class="far fa-clock"></i>&nbsp; Tempo</span>
-                    <div class="form-floating">
-                        <input name="tempo" type="number" class="form-control" id="user-tempo" placeholder="120" required>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6">
-                <div class="form-floating">
-                    <select name="genre" class="form-select" id="genre" aria-label="Genre" required>
-                        <option value="rock">Rock</option>
-                        <option value="pop">Pop</option>
-                        <option value="hip-hop">Hip Hop</option>
-                    </select>
-                    <label for="genre"><i class="fa fa-music"></i>&nbsp; Genre</label>
-                </div>
-            </div>
-        </div>
-
-        <button type="submit" class="btn btn-primary btn-lg">
-            <i class="fa fa-cogs"></i>
-            Generate
-        </button>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/bootstrap.min.css') }}"
+    />
+    <script
+      defer
+      src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"
+    ></script>
+    <script
+      defer
+      src="{{ url_for('static', filename='js/tone.min.js') }}"
+    ></script>
+    <script
+      defer
+      src="{{ url_for('static', filename='js/vexflow.min.js') }}"
+    ></script>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/index.css') }}"
+    />
+    <script
+      defer
+      src="{{ url_for('static', filename='js/index.js') }}"
+    ></script>
+  </head>
+  <body>
+    <h1 class="display-1 mt-5 text-center">
+      <i class="fa fa-music"></i> {{ project_name }}
+    </h1>
+    <form
+      method="post"
+      action="/generate"
+      enctype="multipart/form-data"
+      class="container pt-5 mt-5 d-flex flex-column gap-4 main-form col-md-6 col-10"
+    >
+      <div>
+        <input
+          name="sample"
+          class="form-control form-control-lg"
+          id="sample"
+          type="file"
+          accept="audio/*"
+          required
+        />
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg">
+        <i class="fa fa-cogs"></i>
+        Generate
+      </button>
     </form>
-
     <div class="piano">
+      <div class="piano-visual">
         <div class="d-flex flex-column w-100 align-items-center">
-            <div id="score"> </div>
+          <div id="score"></div>
         </div>
-
-        <div class="piano-renderer"> 
-            <canvas id="piano-notes" class="piano-notes"></canvas>
-            <div class="piano-keys">
-                <div class="piano-keys-white">
-                    <button data-note="C" data-octave="2"></button>
-                    <button data-note="D" data-octave="2"></button>
-                    <button data-note="E" data-octave="2"></button>
-                    <button data-note="F" data-octave="2"></button>
-                    <button data-note="G" data-octave="2"></button>
-                    <button data-note="A" data-octave="2"></button>
-                    <button data-note="B" data-octave="2"></button>
-
-                    <button data-note="C" data-octave="3"></button>
-                    <button data-note="D" data-octave="3"></button>
-                    <button data-note="E" data-octave="3"></button>
-                    <button data-note="F" data-octave="3"></button>
-                    <button data-note="G" data-octave="3"></button>
-                    <button data-note="A" data-octave="3"></button>
-                    <button data-note="B" data-octave="3"></button>
-
-                    <button data-note="C" data-octave="4"></button>
-                    <button data-note="D" data-octave="4"></button>
-                    <button data-note="E" data-octave="4"></button>
-                    <button data-note="F" data-octave="4"></button>
-                    <button data-note="G" data-octave="4"></button>
-                    <button data-note="A" data-octave="4"></button>
-                    <button data-note="B" data-octave="4"></button>
-
-                    <button data-note="C" data-octave="5"></button>
-                    <button data-note="D" data-octave="5"></button>
-                    <button data-note="E" data-octave="5"></button>
-                    <button data-note="F" data-octave="5"></button>
-                    <button data-note="G" data-octave="5"></button>
-                    <button data-note="A" data-octave="5"></button>
-                    <button data-note="B" data-octave="5"></button>
-
-                    <button data-note="C" data-octave="6"></button>
-                    <button data-note="D" data-octave="6"></button>
-                    <button data-note="E" data-octave="6"></button>
-                    <button data-note="F" data-octave="6"></button>
-                    <button data-note="G" data-octave="6"></button>
-                    <button data-note="A" data-octave="6"></button>
-                    <button data-note="B" data-octave="6"></button>
-
-                    <button data-note="C" data-octave="7"></button>
-                </div>
-                <div class="piano-keys-black">
-                    <button data-note="C#" data-octave="2"></button>
-                    <button data-note="D#" data-octave="2"></button>
-                    <button></button>
-                    <button data-note="F#" data-octave="2"></button>
-                    <button data-note="G#" data-octave="2"></button>
-                    <button data-note="A#" data-octave="2"></button>
-                    <button></button>
-
-                    <button data-note="C#" data-octave="3"></button>
-                    <button data-note="D#" data-octave="3"></button>
-                    <button></button>
-                    <button data-note="F#" data-octave="3"></button>
-                    <button data-note="G#" data-octave="3"></button>
-                    <button data-note="A#" data-octave="3"></button>
-                    <button></button>
-
-                    <button data-note="C#" data-octave="4"></button>
-                    <button data-note="D#" data-octave="4"></button>
-                    <button></button>
-                    <button data-note="F#" data-octave="4"></button>
-                    <button data-note="G#" data-octave="4"></button>
-                    <button data-note="A#" data-octave="4"></button>
-                    <button></button>
-
-                    <button data-note="C#" data-octave="5"></button>
-                    <button data-note="D#" data-octave="5"></button>
-                    <button></button>
-                    <button data-note="F#" data-octave="5"></button>
-                    <button data-note="G#" data-octave="5"></button>
-                    <button data-note="A#" data-octave="5"></button>
-                    <button></button>
-
-                    <button data-note="C#" data-octave="6"></button>
-                    <button data-note="D#" data-octave="6"></button>
-                    <button></button>
-                    <button data-note="F#" data-octave="6"></button>
-                    <button data-note="G#" data-octave="6"></button>
-                    <button data-note="A#" data-octave="6"></button>
-                    <button></button>
-                </div>
+        <div class="piano-renderer">
+          <canvas id="piano-notes" class="piano-notes"></canvas>
+          <div class="piano-keys">
+            <div class="piano-keys-white">
+              <button data-note="C" data-octave="2"></button>
+              <button data-note="D" data-octave="2"></button>
+              <button data-note="E" data-octave="2"></button>
+              <button data-note="F" data-octave="2"></button>
+              <button data-note="G" data-octave="2"></button>
+              <button data-note="A" data-octave="2"></button>
+              <button data-note="B" data-octave="2"></button>
+              <button data-note="C" data-octave="3"></button>
+              <button data-note="D" data-octave="3"></button>
+              <button data-note="E" data-octave="3"></button>
+              <button data-note="F" data-octave="3"></button>
+              <button data-note="G" data-octave="3"></button>
+              <button data-note="A" data-octave="3"></button>
+              <button data-note="B" data-octave="3"></button>
+              <button data-note="C" data-octave="4"></button>
+              <button data-note="D" data-octave="4"></button>
+              <button data-note="E" data-octave="4"></button>
+              <button data-note="F" data-octave="4"></button>
+              <button data-note="G" data-octave="4"></button>
+              <button data-note="A" data-octave="4"></button>
+              <button data-note="B" data-octave="4"></button>
+              <button data-note="C" data-octave="5"></button>
+              <button data-note="D" data-octave="5"></button>
+              <button data-note="E" data-octave="5"></button>
+              <button data-note="F" data-octave="5"></button>
+              <button data-note="G" data-octave="5"></button>
+              <button data-note="A" data-octave="5"></button>
+              <button data-note="B" data-octave="5"></button>
+              <button data-note="C" data-octave="6"></button>
+              <button data-note="D" data-octave="6"></button>
+              <button data-note="E" data-octave="6"></button>
+              <button data-note="F" data-octave="6"></button>
+              <button data-note="G" data-octave="6"></button>
+              <button data-note="A" data-octave="6"></button>
+              <button data-note="B" data-octave="6"></button>
+              <button data-note="C" data-octave="7"></button>
             </div>
+            <div class="piano-keys-black">
+              <button data-note="C#" data-octave="2"></button>
+              <button data-note="D#" data-octave="2"></button>
+              <button></button>
+              <button data-note="F#" data-octave="2"></button>
+              <button data-note="G#" data-octave="2"></button>
+              <button data-note="A#" data-octave="2"></button>
+              <button></button>
+              <button data-note="C#" data-octave="3"></button>
+              <button data-note="D#" data-octave="3"></button>
+              <button></button>
+              <button data-note="F#" data-octave="3"></button>
+              <button data-note="G#" data-octave="3"></button>
+              <button data-note="A#" data-octave="3"></button>
+              <button></button>
+              <button data-note="C#" data-octave="4"></button>
+              <button data-note="D#" data-octave="4"></button>
+              <button></button>
+              <button data-note="F#" data-octave="4"></button>
+              <button data-note="G#" data-octave="4"></button>
+              <button data-note="A#" data-octave="4"></button>
+              <button></button>
+              <button data-note="C#" data-octave="5"></button>
+              <button data-note="D#" data-octave="5"></button>
+              <button></button>
+              <button data-note="F#" data-octave="5"></button>
+              <button data-note="G#" data-octave="5"></button>
+              <button data-note="A#" data-octave="5"></button>
+              <button></button>
+              <button data-note="C#" data-octave="6"></button>
+              <button data-note="D#" data-octave="6"></button>
+              <button></button>
+              <button data-note="F#" data-octave="6"></button>
+              <button data-note="G#" data-octave="6"></button>
+              <button data-note="A#" data-octave="6"></button>
+              <button></button>
+            </div>
+          </div>
         </div>
-
-        <div class="piano-controls">
-            <div>
-                <div class="input-group mb-3">
-                  <input type="number" class="form-control" id="tempo" placeholder="Enter a number" min="40" max="240" step="5">
-                </div>
+      </div>
+      <div class="piano-controls">
+        <div class="d-flex flex-column" style="gap: 1rem">
+          <div class="form-floating">
+            <select
+              onchange="load()"
+              name="sample-songs"
+              class="form-select form-select-sm"
+              id="sample-songs"
+              aria-label="Sample songs"
+              required
+            ></select>
+            <label for="sample-songs">
+              <i class="fa fa-music"></i>&nbsp; Sample songs
+            </label>
+          </div>
+          <div class="d-flex flex-row align-items-center" style="gap: 1rem">
+            <button
+              class="btn btn-outline-primary btn-outlined rounded-pill flex-shrink-0"
+              onclick="toggle()"
+            >
+              <i class="fa fa-play"></i> | <i class="fa fa-pause"></i>
+            </button>
+            <button
+              class="btn btn-outline-primary rounded-circle"
+              onclick="stop()"
+            >
+              <i class="fa fa-stop"></i>
+            </button>
+            <div class="input-group">
+              <input
+                type="range"
+                class="form-range"
+                id="tempo"
+                placeholder="Tempo"
+                min="40"
+                max="240"
+                value="120"
+                step="5"
+              />
             </div>
-            <div class="form-floating">
-                <select onchange="load()" name="sample-songs" class="form-select form-select-sm" id="sample-songs" aria-label="Sample songs" required>
-                </select>
-                <label for="sample-songs"><i class="fa fa-music"></i>&nbsp; Sample songs</label>
-            </div>
-            <div class="d-flex flex-row" style="gap: 1rem">
-                <button class="btn btn-outline-primary btn-outlined rounded-pill" onclick="toggle()"> <i class="fa fa-play"></i> | <i class="fa fa-pause"></i>  </button>
-                <button class="btn btn-outline-primary rounded-circle" onclick="stop()"> <i class="fa fa-stop"></i> </button>
-            </div>
+          </div>
         </div>
+        <div class="d-flex flex-column">
+          <h3>
+            <i class="fa fa-music"></i> &nbsp;
+            <span>Tracks</span>
+          </h3>
+
+          <template id="track-controls-template">
+            <li
+              class="list-group-item d-flex flex-row align-items-center justify-content-between"
+            >
+              <div class="form-check form-switch">
+                <input
+                  type="checkbox"
+                  checked
+                  class="form-check-input track-control-playback"
+                  role="switch"
+                  id="track-0-playback-toggle"
+                />
+                <label class="form-check-label" for="track-0-playback-toggle">
+                  <i class="fa-solid fa-record-vinyl"></i> &nbsp;
+                  <span></span>
+                </label>
+              </div>
+              <div>
+                <input
+                  type="checkbox"
+                  checked
+                  class="btn-check track-control-score"
+                  id="track-0-score-toggle"
+                  autocomplete="off"
+                />
+                <label
+                  class="btn btn-outline-primary rounded-circle btn-sm"
+                  for="track-0-score-toggle"
+                >
+                  <i class="fa-regular fa-eye"></i>
+                </label>
+              </div>
+            </li>
+          </template>
+
+          <ul id="tracks" class="list-group"></ul>
+        </div>
+      </div>
     </div>
-
-
-</body>
-
+  </body>
 </html>
