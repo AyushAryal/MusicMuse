@@ -8,15 +8,16 @@
 }
 
 body {
-    color: #fff !important;
-    background-color: #002 !important;
+    background-color: #e3e1dd !important;
+    color: #444444 !important;
+    font-family: 'Cinzel Decorative', serif;
 }
 
 .piano {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    margin: 1rem;
+    padding: 1rem;
     gap: 4rem;
 }
 
@@ -30,8 +31,8 @@ body {
     display: flex;
     flex-direction: column;
     width: calc(var(--white-key-width) * var(--num-white-keys) * 1px);
-    background-color: #111;
-    background: radial-gradient(#000 0%, #002 100%);
+    background-color: #222;
+    /* background: radial-gradient(#000 0%, #002 100%); */
     border: 1px solid #888;
 
     height: 500px;

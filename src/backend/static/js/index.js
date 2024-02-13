@@ -40,7 +40,7 @@ class PianoNotesRenderer {
   }
 
   render_name() {
-    this.context.font = "16px Arial";
+    this.context.font = "13px Cinzel Decorative";
     this.context.fillStyle = `hsl(${180 + Math.sin(+new Date() / 3000) * 180}, 40%, 60%)`;
     this.context.fillText("MeloWave", this.canvas.width - 95, 65);
   }
@@ -176,10 +176,9 @@ class PianoScoreRenderer {
   constructor(div) {
     this.width = 900;
     this.height = 220;
-    this.current_score_index = 0;
     this.scroll_index = 0;
     this.num_notes_in_line = 16;
-    this.renderer = new Vex.Flow.Renderer(div, Vex.Flow.Renderer.Backends.SVG);
+    this.renderer = new Vex.Flow.Renderer(div, Vex.Flow.Renderer.Backends.CANVAS);
     this.renderer.resize(this.width, this.height);
     this.context = this.renderer.getContext();
 
@@ -223,7 +222,7 @@ class PianoScoreRenderer {
   render_voice() {
     let track_elapsed = Tone.Transport.seconds;
     const voice = new Vex.Flow.Voice({});
-    let score = state.song.scores[this.current_score_index];
+    let score = state.song.scores[state.controls.current_score_index];
     if (!score || score.data.length === 0) {
       return;
     }
@@ -460,7 +459,7 @@ let state = (() => {
     controls: {
       tempo: document.getElementById("tempo").value,
       selected_tracks_for_playback: [],
-      selected_tracks_for_score: [],
+      current_score_index: 0,
     },
   };
 })();

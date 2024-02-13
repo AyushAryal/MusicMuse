@@ -40,6 +40,8 @@ def parse_midi(midi_file_path):
                     )
 
         track_list.append({"name": track.name, "data": track_data})
+
+    track_list = [track for track in track_list if len(track["data"]) != 0]
     return {"ticks_per_beat": ticks_per_beat, "tracks": track_list}
 
 

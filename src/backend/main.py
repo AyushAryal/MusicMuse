@@ -8,7 +8,7 @@ from melolib.notation import generate_score_from_parsed_midi
 
 app = Flask(__name__)
 
-PROJECT_NAME = "Melowave"
+PROJECT_NAME = "MELOWAVE"
 
 AVAILABLE_SONGS = [
     Path("res/adl-piano-midi/World/Canadian Pop/Avril Lavigne/Complicated.mid"),
@@ -23,7 +23,6 @@ AVAILABLE_SONGS = [
     Path("res/adl-piano-midi/World/Canadian Pop/Avril Lavigne/My Happy Ending.mid"),
     Path("res/adl-piano-midi/Rap/Rap/Eminem/Hailies Song.mid"),
     Path("res/adl-piano-midi/Pop/Dance Pop/Lady Gaga/Bad Romance.mid"),
-    Path("res/midi/moonlight.mid"),
     Path("res/midi/unravel.mid"),
     Path("res/midi/ngnl.mid"),
 ]
