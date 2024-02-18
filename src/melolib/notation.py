@@ -181,14 +181,8 @@ def estimate_key_signature(notes_count):
         ## Not enought data to infer key signature
         return None
     else:
-
-        def reduce_fn(acc, item):
-            _, v_min = acc
-            _, v = item
-            return acc if v_min < v else item
-
         error_values = get_error_values_for_all_keys(notes_count)
-        return dict(sorted(error_values.items(), key=lambda item: item[1])[:3])
+        return tuple(sorted(error_values.items(), key=lambda item: item[1])[:3])
 
 
 def get_notes_count(score):

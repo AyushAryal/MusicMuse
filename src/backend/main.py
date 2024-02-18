@@ -24,7 +24,10 @@ AVAILABLE_SONGS = [
     Path("res/adl-piano-midi/Rap/Rap/Eminem/Hailies Song.mid"),
     Path("res/adl-piano-midi/Pop/Dance Pop/Lady Gaga/Bad Romance.mid"),
     Path("res/midi/unravel.mid"),
+    Path("res/midi/Nepali.mid"),
+    Path("res/midi/ChhaideuTimi.mid"),
     Path("res/midi/ngnl.mid"),
+    Path("res/midi/summertime_sadness.mid"),
 ]
 
 
