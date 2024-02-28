@@ -178,7 +178,10 @@ class PianoScoreRenderer {
     this.height = 220;
     this.scroll_index = 0;
     this.num_notes_in_line = 16;
-    this.renderer = new Vex.Flow.Renderer(div, Vex.Flow.Renderer.Backends.CANVAS);
+    this.renderer = new Vex.Flow.Renderer(
+      div,
+      Vex.Flow.Renderer.Backends.CANVAS,
+    );
     this.renderer.resize(this.width, this.height);
     this.context = this.renderer.getContext();
 
@@ -419,6 +422,25 @@ function load() {
   });
 }
 
+function generate() {
+  var formData = new FormData();
+  var sampleFile = document.getElementById("sample").files[0];
+  var tempoValue = document.getElementById("sample-tempo").value;
+  var chordComplexity = document.getElementById("chord-complexity").value;
+
+  formData.append("sample", sampleFile);
+  formData.append("tempo", tempoValue);
+  formData.append("chord_complexity", chordComplexity);
+
+  fetch("/generate", {
+    method: "POST",
+    body: formData,
+  }).then(async (response) => {
+    update_song(await response.json());
+    on_update_song();
+  });
+}
+
 function toggle() {
   if (Tone.Transport.state == "stopped" || Tone.Transport.state == "paused") {
     Tone.Transport.start();
@@ -464,7 +486,12 @@ let state = (() => {
   };
 })();
 
-document.addEventListener("keydown", (event) =>
-  event.code === "Space" ? toggle() : null,
-);
+document.addEventListener("keydown", (event) => {
+  if (event.code === "Space") {
+    if (event.target.tagName.toLowerCase() === "button") {
+      event.preventDefault();
+    }
+    toggle();
+  }
+});
 document.addEventListener("DOMContentLoaded", main);

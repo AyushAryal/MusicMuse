@@ -33,7 +33,7 @@ class Note:
         return hash(self.note)
 
     def __eq__(self, o):
-        return isinstance(o, Note) and self.note == o.note
+        return self.note == o.note
 
     def str_sharp(self):
         return self.__str__()

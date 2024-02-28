@@ -7,17 +7,29 @@
     --piano-key-black-color-hover: #000; 
 }
 
-body {
-    background-color: #e3e1dd !important;
-    color: #444444 !important;
+.title {
     font-family: 'Cinzel Decorative', serif;
+}
+
+.page {
+    height: 100vh;
+}
+
+.page:nth-child(1) {
+    color: #fff;
+    background-color: #0f0c2d
+}
+
+.page:nth-child(2) {
+    color: #fff;
+    background-color: #0c1c2d;
 }
 
 .piano {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    padding: 1rem;
+    padding-top: 1rem;
     gap: 4rem;
 }
 

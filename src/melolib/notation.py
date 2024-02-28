@@ -177,12 +177,8 @@ def get_error_values_for_all_keys(observed):
 
 
 def estimate_key_signature(notes_count):
-    if sum(notes_count.values()) < 30:
-        ## Not enought data to infer key signature
-        return None
-    else:
-        error_values = get_error_values_for_all_keys(notes_count)
-        return tuple(sorted(error_values.items(), key=lambda item: item[1])[:3])
+    error_values = get_error_values_for_all_keys(notes_count)
+    return tuple(sorted(error_values.items(), key=lambda item: item[1])[:3])
 
 
 def get_notes_count(score):
