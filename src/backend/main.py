@@ -123,7 +123,7 @@ def track_from_chord_progression(chord_progression, ticks_per_beat, octaver):
                     }
                 )
             num_beats += 1
-    return {"name": "Chord progression arpegiated", "data": midi_notes}
+    return {"name": "Melody Line", "data": midi_notes}
 
 
 @app.post("/generate")
